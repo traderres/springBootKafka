@@ -8,10 +8,13 @@ import org.springframework.boot.Banner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import javax.annotation.PostConstruct;
 
 @SpringBootApplication   // Equivalent to @Configuration, @EnableAutoConfiguration, and @ComponentScan
+@EnableScheduling
 public class SpringBootKafkaApp implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(SpringBootKafkaApp.class);
 
@@ -20,8 +23,6 @@ public class SpringBootKafkaApp implements CommandLineRunner {
 
     /*****************************************************************
      * main() first entry point of this java program
-     * @param args
-     * @throws Exception
      *****************************************************************/
     public static void main(String[] args) throws Exception {
         logger.debug("main started.");
@@ -35,8 +36,6 @@ public class SpringBootKafkaApp implements CommandLineRunner {
 
     /*****************************************************************
      * init() called is called before the run() method
-     * @param args
-     * @throws Exception
      *****************************************************************/
     @PostConstruct
     private void init(){
@@ -44,9 +43,7 @@ public class SpringBootKafkaApp implements CommandLineRunner {
     }
 
     /*****************************************************************
-     * run() called next
-     * @param args
-     * @throws Exception
+     * run() with args is called next
      *****************************************************************/
     @Override
     public void run(String... args) throws Exception {
@@ -56,5 +53,13 @@ public class SpringBootKafkaApp implements CommandLineRunner {
     }
 
 
-
+    /*****************************************************************
+     * run()
+     *   initialDelay and fixedRate are in milliseconds
+     *   this method is called once every 5 seconds
+     *****************************************************************/
+    @Scheduled(initialDelay = 1000, fixedRate = 5000)
+    public void run() {
+        logger.debug("run() called from scheduler.");
+    }
 }
