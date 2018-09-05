@@ -1,0 +1,14 @@
+kafka:
+    bootstrap-servers: localhost:9092
+
+
+###########################################################################
+# Database settings
+###########################################################################
+app.datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+    minPoolSize: 1
+    maxPoolSize: 5

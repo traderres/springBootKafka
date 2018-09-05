@@ -7,92 +7,39 @@
     <groupId>com.whatever</groupId>
     <artifactId>springBootKafka</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>producer</module>
+        <module>consumer</module>
+    </modules>
+
+    <packaging>pom</packaging>
+
 
     <name>springBootKafka</name>
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
+        <HikariCP.version>2.6.0</HikariCP.version>
+        <guava.version>18.0</guava.version>
+        <jackson.version>2.8.5</jackson.version>
+        <junit.version>4.12</junit.version>
+        <logback-classic.version>1.2.3</logback-classic.version>
+        <postgres.version>42.1.4</postgres.version>
+        <spring-kafka.version>2.1.9.RELEASE</spring-kafka.version>
+        <spring-boot.version>2.0.4.RELEASE</spring-boot.version>
+        <spring_release.version>5.0.3.RELEASE</spring_release.version>
+        <spring_boot_maven_plugin.version>1.5.9.RELEASE</spring_boot_maven_plugin.version>
     </properties>
 
 
-    <dependencies>
-
-        <!-- C O M P I L E        D E P E N D E N C I E S -->
-        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Send Logging from SLF4j to Logback -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
-        </dependency>
-
-
-        <!-- T E S T        D E P E N D E N C I E S   -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <version>2.0.4.RELEASE</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>2.0.4.RELEASE</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
-        <pluginManagement>
-            <!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+        <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
             <plugins>
-
-                <!-- Package as an executable jar using this command:
-                        mvn clean package spring-boot:repackage
-                -->
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>2.0.4.RELEASE</version>
-                    <configuration>
-                        <mainClass>com.whatever.SpringBootKafkaApp</mainClass>
-                        <layout>JAR</layout>
-
-                        <!-- Add /src/main/resources folder to the app classpath -->
-                        <addResources>true</addResources>
-
-                        <executable>true</executable>
-                    </configuration>
-
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>repackage</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
                     <version>3.0.0</version>
@@ -112,7 +59,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.0.2</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-install-plugin</artifactId>
@@ -121,6 +68,10 @@
                 <plugin>
                     <artifactId>maven-deploy-plugin</artifactId>
                     <version>2.8.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.0.2</version>
                 </plugin>
             </plugins>
         </pluginManagement>

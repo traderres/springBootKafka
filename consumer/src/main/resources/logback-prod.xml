@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<configuration debug="true">
+    <!-- Production Logback.xml
+
+         This file *will* be included with the production JAR file
+    -->
+    <appender name="ROLLING_LOGFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/cde_sink_connector.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Daily Rollover and compress log file -->
+            <fileNamePattern>logs/archive/cde_sink_connector_%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+
+            <!-- keep 1825 days (5 years) worth of history -->
+            <maxHistory>1825</maxHistory>
+        </rollingPolicy>
+
+        <encoder name="enc" class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <pattern>
+                <pattern>%d{MM/dd/yyyy HH:mm:ss}  %thread %-5level %c %line %m%n</pattern>
+            </pattern>
+        </encoder>
+    </appender>
+
+
+    <logger name="org.springframework" level="INFO" additivity="false">
+        <appender-ref ref="ROLLING_LOGFILE"/>
+    </logger>
+
+    <logger name="csaac.ng" level="DEBUG" additivity="false">
+        <appender-ref ref="ROLLING_LOGFILE"/>
+    </logger>
+
+    <root level="DEBUG" additivity="false">
+        <appender-ref ref="ROLLING_LOGFILE"/>
+    </root>
+
+</configuration>
