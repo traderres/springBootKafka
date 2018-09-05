@@ -1,0 +1,89 @@
+How to debug the reports-consumer and reports-producer locally
+--------------------------------------------------------------
+
+
+Part 1:  Setup local ElasticSearch 5.4
+--------------------------------------
+See the notes here:
+    https://github.com/traderres/webClass/blob/master/learnElasticSearch/howToInstallElasticSearch5.0.1OnCentosUsingRpm.txt
+
+ 1. Download ElasticSearch 5.4 RPM
+    unix> cd /tmp
+    unix> wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.4.0.rpm
+
+ 2. Install ElasticSearch
+    unix> sudo rpm -ivh ./elasticsearch-5.4.0.rpm
+
+ 3. Attempt to start the elasticsearch service
+    unix> sudo service elasticsearch start
+
+ 4. Verify it is up
+    unix> sudo tail -2000f /var/log/elasticsearch/elasticsearch.log
+
+   [2016-11-20T16:47:02,459][INFO ][o.e.p.PluginsService     ] [q6kqqlh] no plugins loaded
+   [2016-11-20T16:47:04,446][INFO ][o.e.n.Node               ] [q6kqqlh] initialized
+   [2016-11-20T16:47:04,446][INFO ][o.e.n.Node               ] [q6kqqlh] starting ...
+   [2016-11-20T16:47:04,600][INFO ][o.e.t.TransportService   ] [q6kqqlh] publish_address {127.0.0.1:9300}, bound_addresses {[::]:9300}
+   [2016-11-20T16:47:04,604][INFO ][o.e.b.BootstrapCheck     ] [q6kqqlh] bound or publishing to a non-loopback or non-link-local address, enforcing bootstrap checks
+
+
+
+
+Part 2:  Setup Kafka
+--------------------
+ 1. Download your own local kafka
+    Go to https://www.apache.org/dyn/closer.cgi?path=/kafka/0.10.1.0/kafka_2.11-0.10.1.0.tgz
+    Save to your /tmp directory
+
+ 2. Install Kafka to /opt
+     unix> sudo -s
+     unix> cd /opt
+     unix> mv /tmp/kafka_2.11-0.10.1.0.tgz .
+     unix> tar zxvf kafka_2.11-0.10.1.0.tgz
+     unix> rm kafka_2.11-0.10.1.0.tgz
+
+     # Give your unix account permissions to this new directory
+     unix> chown -R <unix account>:<unix account> /opt/kafka_2.11-0.10.1.0/
+
+
+ 3. Setup the KAFKA_HOME variable in your shell
+     unix> vi ~/.bashrc
+        export KAFKA_HOME=/opt/kafka_2.11-0.10.1.0
+
+
+ 4. Start the a quick-and-dirty single-node Zookeeper instance
+    unix> cd $KAFKA_HOME
+    unix> bin/zookeeper-server-start.sh config/zookeeper.properties
+
+ 5. Start the Kafka Server
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-server-start.sh config/server.properties
+
+ 6. Create a topic called "updates" that has more than 1 partition
+    NOTE:  The plan is to have 3 consumers so we should have 3 partitions
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 3 --topic updates
+
+ 7. List the topics
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+
+
+
+Part 3:  Compile and Startup the Kafka producer and consumer
+------------------------------------------------------------
+ 1. Compile the reports-producer and reports-consumer
+    unix> cd ~/intellijProjects/springBootKafka
+    unix> mvn clean package
+
+ 2. Startup the reports-producer in IntelliJ
+    Go to reports-producer/src/main/java/csaac/ng/sync/producer/Application.java
+    In Intellij, Right-click on the main() and select 'Debug Application'
+
+ 3. Startup the reports-consumer in IntelliJ
+    Go to reports-consumer/src/main/java/csaac/ng/sync/consumer/Application.java
+    In Intellij, Right-click on the main() and select 'Debug Application'
+
+
+ 4. Set your breakpoints

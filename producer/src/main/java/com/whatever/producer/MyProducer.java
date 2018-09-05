@@ -14,7 +14,7 @@ public class MyProducer {
     public static final Logger logger = LoggerFactory.getLogger(MyProducer.class);
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;   // This is established by the ReportsProducerConfig class
+    private KafkaTemplate<String, String> kafkaTemplate;   // This is established by the MyProducerConfig class
 
 
     public MyProducer()

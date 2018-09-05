@@ -33,7 +33,7 @@ public class MyConsumerConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         // allows a pool of processes to divide the work of consuming records
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "cde-sync-reports");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "updates");
 
         // automatically reset the offset to the earliest offset
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
