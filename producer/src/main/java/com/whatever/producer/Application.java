@@ -54,8 +54,11 @@ public class Application implements CommandLineRunner
     @Scheduled(initialDelay = 1000, fixedRate = 2000)
     public void run() {
         logger.debug("run() called from scheduler.");
-        String updates = dao.getUpdates();
 
+        // Get the current date/time from the dao service class
+        String updates = dao.getCurrentDateTime();
+
+        // Push the current date/time onto the kafka topic
         reportsProducer.send("updates", updates);
     }
 

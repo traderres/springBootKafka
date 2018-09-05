@@ -33,9 +33,9 @@ public class Dao
     }
 
 
-    public String getUpdates()
+    public String getCurrentDateTime()
     {
-        logger.debug("getUpdate() started.");
+        logger.debug("getCurrentDateTime() started.");
         JdbcTemplate jt = new JdbcTemplate(this.postgresDataSource);
         String sql = "select now()";
 
