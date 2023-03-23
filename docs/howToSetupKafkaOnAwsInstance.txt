@@ -1,5 +1,5 @@
-How to have the Producer and Consumer talk to Kafka Topic on AWS
-----------------------------------------------------------------
+How to Setup Kafka to run on an AWS Instance (using plain-text)
+---------------------------------------------------------------
 
 
 Procedure
