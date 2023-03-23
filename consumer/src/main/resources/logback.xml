@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
 <configuration debug="true">
-    <!-- Development Logback.xml
-
-         This file will not be included with the production JAR file
-    -->
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{MM/dd/yyyy HH:mm:ss}  %thread %-5level %c %line %m%n</pattern>
+            <pattern>%d{MM/dd/yyyy HH:mm:ss} %-5level %c %m%n</pattern>
         </encoder>
     </appender>
 
