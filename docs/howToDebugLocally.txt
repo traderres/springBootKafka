@@ -9,7 +9,8 @@ Part 1:  Setup Kafka
     a. Go to https://kafka.apache.org/downloads
     b. Download the binary version of Kafka 3.3.2  (that uses Scala 2.13)
        *OR*
-       https://downloads.apache.org/kafka/3.3.2/kafka_2.13-3.3.2.tgz
+       cd /tmp
+       wget https://downloads.apache.org/kafka/3.3.2/kafka_2.13-3.3.2.tgz
 
     Save to your /tmp directory
 
