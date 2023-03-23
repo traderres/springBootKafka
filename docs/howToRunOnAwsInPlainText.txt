@@ -1,0 +1,80 @@
+How to have the Producer and Consumer talk to Kafka Topic on AWS
+----------------------------------------------------------------
+
+
+Procedure
+---------
+ 1. Startup an instance w2.micro
+    NOTE:  You will need to open up port 9092
+    NOTE:  You will need to create a keystore
+
+ 2. Get the public hostname of the instance     ec2-18-222-151-111.us-east-2.compute.amazonaws.com
+
+ 3. Ssh to the instance
+    ssh -i ~/.ssh/my-kafka-instance.pem    ec2-user@EXTERNAL_HOSTNAME_OF_NEW_INSTANCE
+
+ 4. Do a yum update
+    unix> sudo yum update
+
+ 5. Install OpenJDK
+    unix> sudo yum install java-1.8.0
+
+ 6. Download kafka
+    unix> cd /tmp
+    unix> wget https://downloads.apache.org/kafka/3.3.2/kafka_2.13-3.3.2.tgz
+
+ 7. Install Kafka to /opt
+    unix> sudo -s
+    unix> cd /opt
+    unix> mv /tmp/kafka_2.13-3.3.2.tgz .
+    unix> tar zxvf kafka_2.13-3.3.2.tgz
+    unix> rm kafka_2.13-3.3.2.tgz
+
+    # Give your unix account permissions to this new directory
+    unix> chown -R ec2-user:ec2-user /opt/kafka_2.13-3.3.2
+    unix> exit
+
+
+ 8. Setup the KAFKA_HOME variable in your shell
+    unix> vi ~/.bashrc
+
+        export KAFKA_HOME=/opt/kafka_2.13-3.3.2
+
+
+ 9. Start the a quick-and-dirty single-node Zookeeper instance
+    unix> cd $KAFKA_HOME
+    unix> bin/zookeeper-server-start.sh config/zookeeper.properties
+
+10. Configure the kafka server's advertised listener to be plaintext external hostname
+    unix> vi config/server.properties
+
+      advertised.listeners=PLAINTEXT://EXTERNAL_HOSTNAME_OF_NEW_INSTANCE:9092
+
+
+10. Start the Kafka Server
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-server-start.sh config/server.properties
+
+11. Create a topic called "updates" that has more than 1 partition
+    NOTE:  The plan is to have 3 consumers so we should have 3 partitions
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 3 --topic updates
+
+12. List the topics
+    unix> cd $KAFKA_HOME
+    unix> bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+
+13. Adjust application.yaml of the producer & consumer
+
+    a. Change the producer's application.yaml
+
+		kafka:
+			bootstrap-servers: EXTERNAL_HOSTNAME_OF_NEW_INSTANCE:9092
+
+
+    b. Change the consumer's application.yaml
+
+
+		kafka:
+			bootstrap-servers: EXTERNAL_HOSTNAME_OF_NEW_INSTANCE:9092
