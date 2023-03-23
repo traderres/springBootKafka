@@ -2,18 +2,19 @@ package com.whatever.producer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+
 /**
- * Created by adam on 8/29/18.
+ * MyProducer service class
  */
 @Service
 public class MyProducer {
     public static final Logger logger = LoggerFactory.getLogger(MyProducer.class);
 
-    @Autowired
+    @Resource
     private KafkaTemplate<String, String> kafkaTemplate;   // This is established by the MyProducerConfig class
 
 

@@ -11,16 +11,16 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Consumer Application
  */
 @SpringBootApplication
-public class Application implements CommandLineRunner
+public class ConsumerApplication implements CommandLineRunner
 {
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConsumerApplication.class);
 
     public static void main( String[] args )
     {
         logger.debug("main() started.");
 
         // Disable the banner
-        SpringApplication app = new SpringApplication(Application.class);
+        SpringApplication app = new SpringApplication(ConsumerApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
         app.run(args);
     }

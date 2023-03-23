@@ -30,12 +30,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-            <version>${spring_release.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
             <version>${spring-kafka.version}</version>
@@ -103,7 +97,7 @@
                 <configuration>
 
                     <!-- Default main class to use when running as JAR -->
-                    <mainClass>com.whatever.consumer.Application</mainClass>
+                    <mainClass>com.whatever.consumer.ConsumerApplication</mainClass>
                     <layout>JAR</layout>
 
                     <!-- Add /src/main/resources folder to the app classpath -->

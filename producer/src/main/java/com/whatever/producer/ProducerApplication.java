@@ -17,12 +17,12 @@ import javax.annotation.Resource;
  */
 @SpringBootApplication
 @EnableScheduling
-public class Application implements CommandLineRunner
+public class ProducerApplication implements CommandLineRunner
 {
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProducerApplication.class);
 
     @Resource
-    private Dao dao;
+    private TimeService timeService;
 
     @Resource
     private MyProducer reportsProducer;
@@ -33,7 +33,7 @@ public class Application implements CommandLineRunner
         logger.debug("main() started.");
 
         // Disabled the banner, don't want to see the spring logo
-        SpringApplication app = new SpringApplication(Application.class);
+        SpringApplication app = new SpringApplication(ProducerApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
         app.run(args);
     }
@@ -56,7 +56,7 @@ public class Application implements CommandLineRunner
         logger.debug("run() called from scheduler.");
 
         // Get the current date/time from the dao service class
-        String updates = dao.getCurrentDateTime();
+        String updates = timeService.getCurrentDateTime();
 
         // Push the current date/time onto the kafka topic
         reportsProducer.send("updates", updates);

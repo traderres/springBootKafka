@@ -27,10 +27,6 @@
         <appender-ref ref="ROLLING_LOGFILE"/>
     </logger>
 
-    <logger name="csaac.ng" level="DEBUG" additivity="false">
-        <appender-ref ref="ROLLING_LOGFILE"/>
-    </logger>
-
     <root level="DEBUG" additivity="false">
         <appender-ref ref="ROLLING_LOGFILE"/>
     </root>

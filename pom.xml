@@ -23,16 +23,16 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <HikariCP.version>2.6.0</HikariCP.version>
         <guava.version>18.0</guava.version>
-        <jackson.version>2.8.5</jackson.version>
+        <jackson.version>2.13.3</jackson.version>
         <junit.version>4.12</junit.version>
         <logback-classic.version>1.2.3</logback-classic.version>
-        <postgres.version>42.1.4</postgres.version>
-        <spring-kafka.version>2.1.9.RELEASE</spring-kafka.version>
-        <spring-boot.version>2.0.4.RELEASE</spring-boot.version>
-        <spring_release.version>5.0.3.RELEASE</spring_release.version>
-        <spring_boot_maven_plugin.version>1.5.9.RELEASE</spring_boot_maven_plugin.version>
+
+        <!-- Spring Boot Kafka 2.x works with Java 1.8 -->
+        <spring-kafka.version>2.9.7</spring-kafka.version>
+
+        <spring-boot.version>2.7.1</spring-boot.version>
+        <spring_boot_maven_plugin.version>2.7.1</spring_boot_maven_plugin.version>
     </properties>
 
 
