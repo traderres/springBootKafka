@@ -5,7 +5,8 @@ References
 ----------
 https://docs.aws.amazon.com/msk/latest/developerguide/create-cluster.html
 https://docs.aws.amazon.com/msk/latest/developerguide/msk-encryption.html#msk-encryption-in-transit
-
+https://medium.com/egen/securing-kafka-cluster-using-sasl-acl-and-ssl-dec15b439f9d
+https://aws.amazon.com/blogs/big-data/securing-apache-kafka-is-easy-and-familiar-with-iam-access-control-for-amazon-msk/
 
 
 Part 1:  Setup the Amazon MSK Cluster
@@ -31,7 +32,7 @@ Part 1:  Setup the Amazon MSK Cluster
         Press "Create cluster:"
 
 
-        W A I T    U P    T O      1 5   M I N     (for cluster to be created)
+        W A I T    U P    T O      1 5      M I N     (for cluster to be created)
 
 
  3. Create an IAM policy  (that grants access to create topics on the cluster and to send data to those topics)
@@ -44,8 +45,10 @@ Part 1:  Setup the Amazon MSK Cluster
     d. Choose the JSON tab
 
     e. Update this text with your info
-       a. Replace MSKTutorialCluster --> Your MSK cluster name   (demo-cluster-1)
-       b. Replace Account-ID         --> Your account id         (you will find it in the upper right corner by clicking on your name)
+       a. Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-1
+       b. Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
+       c. Replace MY_REGION            --> With account regtion   -- e.g., us-east-1       Look at the url of your console and you should see it
+
 
             {
                 "Version": "2012-10-17",
@@ -58,7 +61,7 @@ Part 1:  Setup the Amazon MSK Cluster
                             "kafka-cluster:DescribeCluster"
                         ],
                         "Resource": [
-                            "arn:aws:kafka:region:Account-ID:cluster/MSKTutorialCluster/*"
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:cluster/MY_MSK_CLUSTER_NAME/*"
                         ]
                     },
                     {
@@ -69,7 +72,7 @@ Part 1:  Setup the Amazon MSK Cluster
                             "kafka-cluster:ReadData"
                         ],
                         "Resource": [
-                            "arn:aws:kafka:region:Account-ID:topic/MSKTutorialCluster/*"
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:topic/MY_MSK_CLUSTER_NAME/*"
                         ]
                     },
                     {
@@ -79,7 +82,7 @@ Part 1:  Setup the Amazon MSK Cluster
                             "kafka-cluster:DescribeGroup"
                         ],
                         "Resource": [
-                            "arn:aws:kafka:region:Account-ID:group/MSKTutorialCluster/*"
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:group/MY_MSK_CLUSTER_NAME/*"
                         ]
                     }
                 ]
@@ -191,7 +194,7 @@ Part 1:  Setup the Amazon MSK Cluster
 
     g. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
        instance unix> cd ~/kafka_2.12-2.8.1/libs
-       instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.1/aws-msk-iam-auth-1.1.1-all.jar
+       instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.6/aws-msk-iam-auth-1.1.6-all.jar
 
     h. Create client.properties in the kafka_2.12-2.8.1/bin directory
        instance unix> cd ~/kafka_2.12-2.8.1/bin
@@ -212,8 +215,9 @@ Part 1:  Setup the Amazon MSK Cluster
 
     j. Create a topic called:  MSKTutorialTopic
        instance unix> cd ~/kafka_2.12-2.8.1/bin
-       instance unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+       instance unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098    # We only need 1 to create the topic
        instance unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic MSKTutorialTopic
+
 
 
 Part 2:  Configure springBootKafka to use SSL
