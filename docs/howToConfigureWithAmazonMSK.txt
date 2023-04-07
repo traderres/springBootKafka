@@ -1,0 +1,220 @@
+How to Configure the Kafka Consumer & Producer to work with Amazon MSK
+----------------------------------------------------------------------
+
+References
+----------
+https://docs.aws.amazon.com/msk/latest/developerguide/create-cluster.html
+https://docs.aws.amazon.com/msk/latest/developerguide/msk-encryption.html#msk-encryption-in-transit
+
+
+
+Part 1:  Setup the Amazon MSK Cluster
+-------------------------------------
+ 1. login to aws.com
+
+ 2. Create the MSK cluster
+    a. Go to MSK
+    a. On the left, choose Clusters
+    c. Press "Create cluster"
+    d. In the Create cluster page
+
+        Creation Method:        Quick create
+        Cluster Name:           demo-cluster-1
+        Cluster Type:           Provisioned
+
+        Apache Kafka version:   2.8.1
+
+        Broker Type:            kafka.t3.small
+
+        EBS Storage per broker:  1 GiB
+
+        Press "Create cluster:"
+
+
+        W A I T    U P    T O      1 5   M I N     (for cluster to be created)
+
+
+ 3. Create an IAM policy  (that grants access to create topics on the cluster and to send data to those topics)
+    a. Go to IAM
+
+    b. On the nav pane, choose Policies.
+
+    c. Press "Create"
+
+    d. Choose the JSON tab
+
+    e. Update this text with your info
+       a. Replace MSKTutorialCluster --> Your MSK cluster name   (demo-cluster-1)
+       b. Replace Account-ID         --> Your account id         (you will find it in the upper right corner by clicking on your name)
+
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:Connect",
+                            "kafka-cluster:AlterCluster",
+                            "kafka-cluster:DescribeCluster"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:region:Account-ID:cluster/MSKTutorialCluster/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:*Topic*",
+                            "kafka-cluster:WriteData",
+                            "kafka-cluster:ReadData"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:region:Account-ID:topic/MSKTutorialCluster/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:AlterGroup",
+                            "kafka-cluster:DescribeGroup"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:region:Account-ID:group/MSKTutorialCluster/*"
+                        ]
+                    }
+                ]
+            }
+
+     c. Press "Next: Tags"
+
+     d. Press "Next: Review"
+
+     e. In the "Review Policy" page
+        Name:  access-to-demo-1-msk-cluster-policy
+
+        Press "Create policy"
+
+
+  4. Create an IAM role and attach the policy to it
+     a. On the nav pane, choose Roles.
+     b. Press "Create role"
+     c. Under Common use cases, choose EC2,
+        Press "Next"
+
+     d. In "Add permissions"
+        Enter the name of the policy in the search box -- e.g., access-to-demo-1-msk-cluster-policy
+        Check "access-to-demo-1-msk-cluster-policy"
+        Press "Next"
+
+     e. In Name, review, and create
+        Role Name:  access-to-demo-1-msk-cluster-role
+        Press "Create role"
+
+
+ 5. Create a client machine
+    a. Go to EC2
+    b. Press "Launch instance" -> Launch instance
+    c. In the Launch an instance page
+       Name:           msk-instance
+       Application:    Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
+       Architecture:   64-bit
+       Instance Type:  t2.micro
+
+    d. In Key pair (login)
+       Press "Create a new key pair"
+         Key pair name:        msk-key-pair
+         Key pair type:        RSA
+         Private key format:   .pem
+         Press "Create key pair"
+
+         You will be prompted to save msk-key-pair.pem
+         -- Save it to your ~/Downloads/msk-key-pair.pem
+
+    e. In Network settings, go with defaults
+       -- Allow SSH traffic from anywhere
+
+    f. In Advanced details
+       IAM instance profile:  access-to-demo-1-msk-cluster-role     (This is the role you created earlier)
+
+    g. Press "Launch instance"
+
+    h. Get the security group for your instance
+       Go to EC2 -> Instances
+       Check the msk-instance
+       Open the "Security" tab
+       Copy the security group -- e.g., sg-0d4b90a62b0f9ba5a
+
+    i. Go to VPC and create an inbound rule
+       Go to VPC
+       In the navigation pane, choose Security Groups
+       Check your security group (from the previous step)
+       Select the "Inbound rules" tab
+       Press "Edit inbound rules"
+       Press "Add Rule"
+         Type:  All Traffic
+         Source:  Select your security group -- e.g., sg-0d4b90a62b0f9ba5a
+         Press "Save rules"
+
+
+ 6. Create a kafka topic
+    a. Get the version of kafka from MSK
+       1) Go to MSK
+       2) Look for your clusters
+            demo-cluster-1
+            -- Get the Apache Kakfa version -- e.g., 2.8.1
+
+    b. Get the SSH credentials to connect to your running instance
+       1) Go to EC2
+       2) Select Instance
+       3) Check your msk-instance
+       4) Pull Actions -> Connect
+       5) Select the "SSH client" tab
+          -- You should see the ssh command to connect
+                 ssh -i "msk-key-pair.pem" ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com
+
+    c. Copy the msk-key-pair.pem to your ~/.ssh directory
+       unix> mv ~/Downloads/msk-key-pair.pem ~/.ssh
+       unix> chmod go-rwx ~/.ssh/msk-key-pair.pem      # prevent other users from reading/writing this file
+
+    d. SSH to your box
+       unix> ssh -i ~/.ssh/msk-key-pair.pem ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com
+
+
+    e. Install Java-11 on the instance
+       instance unix> sudo yum install java-11
+
+    f. Download kafka 2.8.1 to this instance
+       instance unix> cd
+       instance unix> wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz
+       instance unix> tar -xzf kafka_2.12-2.8.1.tgz
+       instance unix> rm kafka_2.12-2.8.1.tgz
+
+    g. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
+       instance unix> cd ~/kafka_2.12-2.8.1/libs
+       instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.1/aws-msk-iam-auth-1.1.1-all.jar
+
+    h. Create client.properties in the kafka_2.12-2.8.1/bin directory
+       instance unix> cd ~/kafka_2.12-2.8.1/bin
+       instance unix> vi client.properties
+
+            security.protocol=SASL_SSL
+            sasl.mechanism=AWS_MSK_IAM
+            sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;
+            sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
+
+    i. Get the bootstrap server hostname
+       1) Go to the MSK console
+       2) Wait for your cluster to become Active
+       3) Click on your demo-cluster-1
+       4) Press "View client information"
+       5) Under Bootstrap servers
+          Copy the TLS endpoint for private endpoint -- e.g., b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+
+    j. Create a topic called:  MSKTutorialTopic
+       instance unix> cd ~/kafka_2.12-2.8.1/bin
+       instance unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+       instance unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic MSKTutorialTopic
+
+
+Part 2:  Configure springBootKafka to use SSL
+---------------------------------------------
