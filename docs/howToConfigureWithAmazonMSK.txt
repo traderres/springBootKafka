@@ -7,6 +7,8 @@ https://docs.aws.amazon.com/msk/latest/developerguide/create-cluster.html
 https://docs.aws.amazon.com/msk/latest/developerguide/msk-encryption.html#msk-encryption-in-transit
 https://medium.com/egen/securing-kafka-cluster-using-sasl-acl-and-ssl-dec15b439f9d
 https://aws.amazon.com/blogs/big-data/securing-apache-kafka-is-easy-and-familiar-with-iam-access-control-for-amazon-msk/
+https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
+
 
 
 Part 1:  Setup the Amazon MSK Cluster
