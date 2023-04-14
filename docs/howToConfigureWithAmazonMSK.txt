@@ -163,6 +163,9 @@ Part 1:  Setup the Amazon MSK Cluster
 
 
  6. Create a kafka topic
+    NOTE:  By default a running instance INSIDE amazon AWS will have access to the cluster
+           But, we do not have access OUTSIDE amazon AWS at this time
+
     a. Get the version of kafka from MSK
        1) Go to MSK
        2) Look for your clusters
