@@ -32,7 +32,7 @@ Part 1:  Setup the Amazon MSK Cluster
 
         EBS Storage per broker:  1 GiB
 
-        Press "Create cluster:"
+        Press "Create cluster"
 
 
         W A I T    U P    T O      1 5      M I N     (for cluster to be created)
@@ -43,14 +43,14 @@ Part 1:  Setup the Amazon MSK Cluster
 
     b. On the nav pane, choose Policies.
 
-    c. Press "Create"
+    c. Press "Create Policy"
 
     d. Choose the JSON tab
 
     e. Update this text with your info
        a. Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-1
        b. Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
-       c. Replace MY_REGION            --> With account regtion   -- e.g., us-east-1       Look at the url of your console and you should see it
+       c. Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
 
 
             {
@@ -138,6 +138,9 @@ Part 1:  Setup the Amazon MSK Cluster
 
     e. In Network settings, go with defaults
        -- Allow SSH traffic from anywhere
+       -- ALSO: Get your IP address by going to whatismyip.com
+                Add an inbound rule to allow SSH traffic from your public IP
+
 
     f. In Advanced details
        IAM instance profile:  access-to-demo-1-msk-cluster-role     (This is the role you created earlier)
