@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ConsumerConfig
+ * MyConsumerConfig
  */
 @EnableKafka
 @Configuration

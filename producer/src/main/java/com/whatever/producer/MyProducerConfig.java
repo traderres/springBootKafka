@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ReportsProducerConfig
+ * MyProducerConfig
  */
 @Configuration
 public class MyProducerConfig {
