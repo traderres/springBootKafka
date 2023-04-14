@@ -20,6 +20,9 @@ public class MyProducerConfig {
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${kafka.truststore-filepath}")
+    private String trustStoreFilePath;
+
     @Bean
     public Map<String, Object> producerConfigs() {
         Map<String, Object> props = new HashMap<>();
@@ -28,6 +31,14 @@ public class MyProducerConfig {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        // AWS Kafka properties
+        props.put("ssl.truststore.location",            this.trustStoreFilePath);
+        props.put("security.protocol",                  "SASL_SSL");
+        props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+        props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+        props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
         return props;
     }
 

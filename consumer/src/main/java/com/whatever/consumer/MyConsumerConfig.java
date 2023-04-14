@@ -23,6 +23,9 @@ public class MyConsumerConfig {
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${kafka.truststore-filepath}")
+    private String trustStoreFilePath;
+
     @Bean
     public Map<String, Object> consumerConfig() {
         Map<String, Object> props = new HashMap<>();
@@ -40,6 +43,15 @@ public class MyConsumerConfig {
 
         // Pull at most 10 records at a time
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+
+
+        // AWS Kafka properties
+        props.put("ssl.truststore.location",            this.trustStoreFilePath);
+        props.put("security.protocol",                  "SASL_SSL");
+        props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+        props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+        props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
 
         return props;
     }

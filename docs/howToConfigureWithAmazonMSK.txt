@@ -8,6 +8,7 @@ https://docs.aws.amazon.com/msk/latest/developerguide/msk-encryption.html#msk-en
 https://medium.com/egen/securing-kafka-cluster-using-sasl-acl-and-ssl-dec15b439f9d
 https://aws.amazon.com/blogs/big-data/securing-apache-kafka-is-easy-and-familiar-with-iam-access-control-for-amazon-msk/
 https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
+https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
 
 
 
@@ -224,3 +225,193 @@ Part 1:  Setup the Amazon MSK Cluster
 
 Part 2:  Configure springBootKafka to use SSL
 ---------------------------------------------
+  1. Add the maven dependency
+
+                <dependency>
+                    <groupId>software.amazon.msk</groupId>
+                    <artifactId>aws-msk-iam-auth</artifactId>
+                    <version>1.1.6</version>
+                </dependency>
+
+
+  2. Edit MyProducerConfig
+     a. Inject the truststore file path
+     b. Add the properties
+             // AWS Kafka properties
+             props.put("ssl.truststore.location",            this.trustStoreFilePath);
+             props.put("security.protocol",                  "SASL_SSL");
+             props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+             props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+        When finished, the MyProducerConfig should look something like this
+
+            package com.whatever.producer;
+
+            import org.apache.kafka.clients.producer.ProducerConfig;
+            import org.apache.kafka.common.serialization.StringSerializer;
+            import org.springframework.beans.factory.annotation.Value;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+            import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+            import org.springframework.kafka.core.KafkaTemplate;
+            import org.springframework.kafka.core.ProducerFactory;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * ReportsProducerConfig
+             */
+            @Configuration
+            public class MyProducerConfig {
+                @Value("${kafka.bootstrap-servers}")
+                private String bootstrapServers;
+
+                @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
+                private String trustStoreFilePath;
+
+                @Bean
+                public Map<String, Object> producerConfigs() {
+                    Map<String, Object> props = new HashMap<>();
+
+                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+                    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+                    // AWS Kafka properties
+                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+                    return props;
+                }
+
+                @Bean
+                public ProducerFactory<String, String> producerFactory() {
+                    Map<String, Object> configs = producerConfigs();
+                    return new DefaultKafkaProducerFactory<>(configs);
+                }
+
+                @Bean
+                public KafkaTemplate<String, String> kafkaTemplate() {
+                    return new KafkaTemplate<>(producerFactory());
+                }
+
+            }
+
+
+
+  3. Edit MyConsumerConfig
+     a. Inject the truststore file path
+     b. Add the properties
+             // AWS Kafka properties
+             props.put("ssl.truststore.location",            this.trustStoreFilePath);
+             props.put("security.protocol",                  "SASL_SSL");
+             props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+             props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+        When finished, the MyProducerConfig should look something like this
+
+            package com.whatever.consumer;
+
+            import org.apache.kafka.clients.consumer.ConsumerConfig;
+            import org.apache.kafka.common.serialization.StringDeserializer;
+            import org.springframework.beans.factory.annotation.Value;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+            import org.springframework.kafka.annotation.EnableKafka;
+            import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+            import org.springframework.kafka.config.KafkaListenerContainerFactory;
+            import org.springframework.kafka.core.*;
+            import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * ConsumerConfig
+             */
+            @EnableKafka
+            @Configuration
+            public class MyConsumerConfig {
+                @Value("${kafka.bootstrap-servers}")
+                private String bootstrapServers;
+
+                @Value("${kafka.truststore-filepath}")
+                private String trustStoreFilePath;
+
+                @Bean
+                public Map<String, Object> consumerConfig() {
+                    Map<String, Object> props = new HashMap<>();
+
+                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServers);
+                    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+                    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+                    // allows a pool of processes to divide the work of consuming records
+                    props.put(ConsumerConfig.GROUP_ID_CONFIG, "updates");
+
+                    // automatically reset the offset to the earliest offset
+                    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+                    // Pull at most 10 records at a time
+                    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+
+
+                    // AWS Kafka properties
+                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+                    return props;
+                }
+
+                @Bean
+                public ConsumerFactory<String, String> consumerFactory() {
+                    return new DefaultKafkaConsumerFactory<>(consumerConfig());
+                }
+
+                @Bean
+                public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> kafkaListenerContainerFactory() {
+                    ConcurrentKafkaListenerContainerFactory<String, String> factory =  new ConcurrentKafkaListenerContainerFactory<>();
+                    factory.setConsumerFactory(consumerFactory());
+                    return factory;
+                }
+
+            }
+
+
+
+
+ 4. Turn on public access to the brokers of MSK clusters
+    [See https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html]
+
+
+
+ 5. Add the public broker host names to the kafka.bootstrap-servers options in applications.yaml
+
+
+
+
+ 6. Try to push and consume using SASL_SSL
+    a. Compile the code
+       unix> cd ~/intelliJProjects/springBootKafka
+       unix> mvn clean package
+
+    b. Run the producer (to push messages)
+       unix> java -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+
+    c. Run the consumer  (to consume messages)
+       unix> Java -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
+
