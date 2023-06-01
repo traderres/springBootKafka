@@ -1,0 +1,585 @@
+How to Configure the Kafka Consumer & Producer to work with Amazon MSK
+----------------------------------------------------------------------
+
+References
+----------
+https://docs.aws.amazon.com/msk/latest/developerguide/create-cluster.html
+https://docs.aws.amazon.com/msk/latest/developerguide/msk-encryption.html#msk-encryption-in-transit
+https://medium.com/egen/securing-kafka-cluster-using-sasl-acl-and-ssl-dec15b439f9d
+https://aws.amazon.com/blogs/big-data/securing-apache-kafka-is-easy-and-familiar-with-iam-access-control-for-amazon-msk/
+https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
+https://github.com/aws/aws-msk-iam-auth
+
+
+Part 1:  Setup the Amazon MSK Cluster
+-------------------------------------
+ 1. login to aws.com
+
+ 2. Create the MSK cluster
+    a. Go to MSK
+    a. On the left, choose Clusters
+    c. Press "Create cluster"
+    d. In the Create cluster page
+
+        Creation Method:        Quick create
+        Cluster Name:           demo-cluster-3
+        Cluster Type:           Provisioned
+
+        Apache Kafka version:   2.8.1
+
+        Broker Type:            kafka.t3.small
+
+        EBS Storage per broker:  1 GiB
+
+        Press "Create cluster"
+
+
+        W A I T    U P    T O      1 5      M I N     (for cluster to be created)
+
+
+ 3. Create an IAM Policy:  access-to-demo-3-msk-cluster-policy
+    that grants access to create topics on the cluster and to send data to those topics
+    a. Go to IAM
+    b. In the nav pane, choose Policies.
+    c. Press "Create Policy"
+    d. Choose the JSON tab
+    e. Copy this to the Policy editor
+
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:Connect",
+                            "kafka-cluster:AlterCluster",
+                            "kafka-cluster:DescribeCluster"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:cluster/MY_MSK_CLUSTER_NAME/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:*Topic*",
+                            "kafka-cluster:WriteData",
+                            "kafka-cluster:ReadData"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:topic/MY_MSK_CLUSTER_NAME/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:AlterGroup",
+                            "kafka-cluster:DescribeGroup"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:group/MY_MSK_CLUSTER_NAME/*"
+                        ]
+                    }
+                ]
+            }
+
+
+    f. Update this text with your info
+       1) Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-3
+       2) Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
+       3) Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
+
+
+       When finished, my policy looked like this:
+
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:Connect",
+                            "kafka-cluster:AlterCluster",
+                            "kafka-cluster:DescribeCluster"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:us-east-1:524647912468:cluster/demo-cluster-3/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:*Topic*",
+                            "kafka-cluster:WriteData",
+                            "kafka-cluster:ReadData"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:us-east-1:524647912468:topic/demo-cluster-3/*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "kafka-cluster:AlterGroup",
+                            "kafka-cluster:DescribeGroup"
+                        ],
+                        "Resource": [
+                            "arn:aws:kafka:us-east-1:524647912468:group/demo-cluster-3/*"
+                        ]
+                    }
+                ]
+            }
+
+
+
+    g. Press "Next: Tags"
+    h. In the "Review and Create" page
+       Name:  access-to-demo-3-msk-cluster-policy
+       Press "Create policy"
+
+
+
+
+ 4. Create an admin cluster **POLICY** called admin-demo-3-msk-cluster-policy
+    a. Go to IAM
+    b. On the nav pane, choose Policies.
+    c. Press "Create Policy"
+    d. Choose the JSON tab
+    e. Copy this JSON to the Policy Editor
+
+                {
+                   "Version": "2012-10-17",
+                   "Statement": [
+                       {
+                           "Effect": "Allow",
+                           "Action": [
+                               "kafka-cluster:*"
+                           ],
+                           "Resource": [
+                                "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:*/MY_MSK_CLUSTER_NAME/*"
+                           ]
+                       }
+                   ]
+                }
+
+
+
+    f. Update this text with your info
+       1) Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-3
+       2) Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
+       3) Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
+
+
+       When finished, my policy looked like this:
+
+        {
+           "Version": "2012-10-17",
+           "Statement": [
+               {
+                   "Effect": "Allow",
+                   "Action": [
+                       "kafka-cluster:*"
+                   ],
+                   "Resource": [
+                        "arn:aws:kafka:us-east-1:524647912468:*/demo-cluster-3/*"
+                   ]
+               }
+           ]
+        }
+
+
+
+    g. Press "Next: Tags"
+    h. In the "Review and Create" page
+        Name:  admin-demo-3-msk-cluster-policy
+        Press "Create policy"
+
+
+
+ 5. Create an Admin IAM **USER** demo-user3 that has admin privileges for my MSK cluster called msk-user
+    a. Go to IAM
+    b. On the nav pane, choose Users
+    c. Press "Add users"
+    d. In User the User details
+       User name:   demo-user3
+       Press "Next"
+    e. In "Set permissions"
+       Press "Attach policies directly"
+       Select  admin-demo-3-msk-cluster-policy
+       Press "Next"
+    f. Press "Create user"
+    g. In the "Users" list, click on demo-user3
+    h. Click on the "Security credentials" tab
+    i. Press "Create access key"
+    j. In "Access key best practices & alternatives"
+       Select Command Line Interface (CLI)
+       Check "I understand the above recommendations and want to proceed to create an access key"
+    k. In "Set description tag",
+       enter demo-user3 access key
+       Press "Create access key"
+    l. In "Retrieve access keys",
+       Press "Download .csv file"
+       Press "Done"
+
+
+
+  6. Create an IAM **ROLE** and attach the policy to it
+     a. Go to IAM
+     b. On the nav pane, choose Roles.
+     c. Press "Create role"
+     d. Under Common use cases,                    choose EC2,
+     f. In the "Use cases for other AWS Services", choose EC2
+        Press "Next"
+
+     d. In "Add permissions"
+        Enter the name of the policy in the search box -- e.g., access-to-demo-3-msk-cluster-policy
+        Check "access-to-demo-3-msk-cluster-policy"
+        Press "Next"
+
+     e. In Name, review, and create
+        Role Name:  access-to-demo-3-msk-cluster-role
+        Press "Create role"
+
+
+ 7. Create a client machine
+    a. Go to EC2
+    b. In th nav pane, select Instances
+    c. Press "Launch instance" -> Launch instance
+    d. In the Launch an instance page
+       Name:           msk3-instance
+       Application:    Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
+       Architecture:   64-bit
+       Instance Type:  t2.micro
+
+    d. In Key pair (login)
+       Press "Create a new key pair"
+         Key pair name:        msk3-key-pair
+         Key pair type:        RSA
+         Private key format:   .pem
+         Press "Create key pair"
+
+         You will be prompted to save msk-key-pair.pem
+         -- Save it to your ~/Downloads/msk3-key-pair.pem
+
+    e. In Network settings, go with defaults
+       -- Allow SSH traffic from anywhere
+
+    f. In Advanced details
+       IAM instance profile:  access-to-demo-3-msk-cluster-role     (This is the role you created earlier)
+
+    g. Press "Launch instance"
+
+    h. Get the security group for your instance
+       Go to EC2 -> Instances
+       Check the msk-instance
+       Open the "Security" tab
+       Copy the security group -- e.g., sg-07b7f6142dcc38f81
+
+    i. Go to VPC and create an inbound rule
+       Go to VPC
+       In the navigation pane, choose Security Groups
+       Check your security group (from the previous step)
+       Select the "Inbound rules" tab
+       Press "Edit inbound rules"
+       Press "Add Rule"
+         Type:  All Traffic
+         Source:  Select your security group -- e.g., sg-07b7f6142dcc38f81
+         Press "Save rules"
+
+
+ 8. Create a kafka topic
+    NOTE:  By default a running instance INSIDE amazon AWS will have access to the cluster
+           But, we do not have access OUTSIDE amazon AWS at this time
+
+    a. Get the version of kafka from MSK
+       1) Go to MSK
+       2) Look for your clusters
+            demo-cluster-3
+            -- Get the Apache Kakfa version -- e.g., 2.8.1
+
+    b. Get the SSH credentials to connect to your running instance
+       1) Go to EC2
+       2) Select Instance
+       3) Check your msk3-instance
+       4) Pull Actions -> Connect
+       5) Select the "SSH client" tab
+          -- You should see the ssh command to connect
+                ssh -i "msk3-key-pair.pem" ec2-user@ec2-34-227-107-24.compute-1.amazonaws.com
+
+    c. Copy the msk3-key-pair.pem to your ~/.ssh directory
+       unix> mv ~/Downloads/msk3-key-pair.pem ~/.ssh
+       unix> chmod go-rwx ~/.ssh/msk3-key-pair.pem      # prevent other users from reading/writing this file
+
+    d. SSH to your box
+       unix> ssh -i ~/.ssh/msk3-key-pair.pem ec2-user@ec2-34-227-107-24.compute-1.amazonaws.com
+
+    e. Install telnet
+       instance unix> sudo yum install telnet
+
+    f. Install Java-11 on the instance
+       instance unix> sudo yum install java-11
+
+    g. Verify java is installed
+       instance unix> java -version
+
+       You should see this:
+         openjdk version "11.0.19" 2023-04-18 LTS
+         OpenJDK Runtime Environment Corretto-11.0.19.7.1 (build 11.0.19+7-LTS)
+         OpenJDK 64-Bit Server VM Corretto-11.0.19.7.1 (build 11.0.19+7-LTS, mixed mode)
+
+
+    h. Download kafka 2.8.1 to this instance
+       instance unix> cd
+       instance unix> wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz
+       instance unix> tar -xzf kafka_2.12-2.8.1.tgz
+       instance unix> rm kafka_2.12-2.8.1.tgz
+
+    i. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
+       instance unix> cd ~/kafka_2.12-2.8.1/libs
+       instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.6/aws-msk-iam-auth-1.1.6-all.jar
+
+    j. Create client.properties in the kafka_2.12-2.8.1/bin directory
+       instance unix> cd ~/kafka_2.12-2.8.1/bin
+       instance unix> vi client.properties
+
+            security.protocol=SASL_SSL
+            sasl.mechanism=AWS_MSK_IAM
+            sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName="msk-user";
+            sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
+
+
+    k. Run aws configure on this machine and setup the profile
+       unix> aws configure --profile msk-user
+
+       AWS Access Key Id:       [enter the 1st value from demo-user3.csv]
+       AWS Secret Access Key:   [enter the 2nd value from demo-usre3.csv]
+       Default region name:     us-east-1         # Enter YOUR region
+       Default output format:   json
+
+
+    l. Get the bootstrap server hostname
+       1) Go to the MSK console
+       2) Wait for your cluster to become Active
+       3) Click on your demo-cluster-3
+       4) Press "View client information"
+       5) Under Bootstrap servers
+          Copy the TLS endpoint for private endpoint -- e.g., b-2.democluster3.2ibefl.c12.kafka.us-east-1.amazonaws.com:9098,b-1.democluster3.2ibefl.c12.kafka.us-east-1.amazonaws.com:9098,b-3.democluster3.2ibefl.c12.kafka.us-east-1.amazonaws.com:9098
+
+    m. Verify that you can reach one of the bootstrap servers
+       instance unix> telnet b-2.democluster3.2ibefl.c12.kafka.us-east-1.amazonaws.com 9098
+       -- If it hangs, then your instance cannot talk to the MSK cluster
+
+    n. Create a topic called:  MSKTutorialTopic
+       instance unix> cd ~/kafka_2.12-2.8.1/bin
+       instance unix> export BOOTSTRAP_SERVER=b-2.democluster3.2ibefl.c12.kafka.us-east-1.amazonaws.com:9098   # We only need 1 to create the topic
+       instance unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic MSKTutorialTopic
+
+
+
+Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Amazon MSK Cluster
+-----------------------------------------------------------------------------------------------
+  1. Add the maven dependency to the producer and consumer pom.xml files:
+     NOTE:  This java library allows our kafka client to talk to Amazon MSK using AWS IAM for authentication and authorization
+
+                <dependency>
+                    <groupId>software.amazon.msk</groupId>
+                    <artifactId>aws-msk-iam-auth</artifactId>
+                    <version>1.1.6</version>
+                </dependency>
+
+
+
+  2. Tell the Producer Configuration to have some additional properties:
+     a. Edit MyProducerConfig
+
+     b. Inject the truststore file path
+              @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
+              private String trustStoreFilePath;
+
+
+     c. Add the properties to the kafka property configuration
+             // AWS Kafka properties
+             props.put("ssl.truststore.location",            this.trustStoreFilePath);
+             props.put("security.protocol",                  "SASL_SSL");
+             props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user\";");
+             props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+        When finished, the MyProducerConfig should look something like this
+
+            package com.whatever.producer;
+
+            import org.apache.kafka.clients.producer.ProducerConfig;
+            import org.apache.kafka.common.serialization.StringSerializer;
+            import org.springframework.beans.factory.annotation.Value;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+            import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+            import org.springframework.kafka.core.KafkaTemplate;
+            import org.springframework.kafka.core.ProducerFactory;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * MyProducerConfig
+             */
+            @Configuration
+            public class MyProducerConfig {
+                @Value("${kafka.bootstrap-servers}")
+                private String bootstrapServers;
+
+                @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
+                private String trustStoreFilePath;
+
+                @Bean
+                public Map<String, Object> producerConfigs() {
+                    Map<String, Object> props = new HashMap<>();
+
+                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+                    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+                    // AWS Kafka properties
+                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user\";");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+                    return props;
+                }
+
+                @Bean
+                public ProducerFactory<String, String> producerFactory() {
+                    Map<String, Object> configs = producerConfigs();
+                    return new DefaultKafkaProducerFactory<>(configs);
+                }
+
+                @Bean
+                public KafkaTemplate<String, String> kafkaTemplate() {
+                    return new KafkaTemplate<>(producerFactory());
+                }
+
+            }
+
+
+
+  3. Adjust the Consumer Kafka Configuration to use AWS MSK's security
+     a. Edit MyConsumerConfig
+
+     b. Inject the truststore file path
+              @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
+                 private String trustStoreFilePath;
+
+
+     c. Add the properties to the kafka property configuration     a. Inject the truststore file path
+             // AWS Kafka properties
+             props.put("ssl.truststore.location",            this.trustStoreFilePath);
+             props.put("security.protocol",                  "SASL_SSL");
+             props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user\";");
+             props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+        When finished, the MyProducerConfig should look something like this
+
+            package com.whatever.consumer;
+
+            import org.apache.kafka.clients.consumer.ConsumerConfig;
+            import org.apache.kafka.common.serialization.StringDeserializer;
+            import org.springframework.beans.factory.annotation.Value;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+            import org.springframework.kafka.annotation.EnableKafka;
+            import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+            import org.springframework.kafka.config.KafkaListenerContainerFactory;
+            import org.springframework.kafka.core.*;
+            import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * MyConsumerConfig
+             */
+            @EnableKafka
+            @Configuration
+            public class MyConsumerConfig {
+                @Value("${kafka.bootstrap-servers}")
+                private String bootstrapServers;
+
+                @Value("${kafka.truststore-filepath}")
+                private String trustStoreFilePath;
+
+                @Bean
+                public Map<String, Object> consumerConfig() {
+                    Map<String, Object> props = new HashMap<>();
+
+                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServers);
+                    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+                    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+                    // allows a pool of processes to divide the work of consuming records
+                    props.put(ConsumerConfig.GROUP_ID_CONFIG, "updates");
+
+                    // automatically reset the offset to the earliest offset
+                    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+                    // Pull at most 10 records at a time
+                    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+
+
+                    // AWS Kafka properties
+                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user\";");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+                    return props;
+                }
+
+                @Bean
+                public ConsumerFactory<String, String> consumerFactory() {
+                    return new DefaultKafkaConsumerFactory<>(consumerConfig());
+                }
+
+                @Bean
+                public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> kafkaListenerContainerFactory() {
+                    ConcurrentKafkaListenerContainerFactory<String, String> factory =  new ConcurrentKafkaListenerContainerFactory<>();
+                    factory.setConsumerFactory(consumerFactory());
+                    return factory;
+                }
+
+            }
+
+
+
+
+ 4. Turn on public access to the brokers of MSK clusters
+    [See https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html]
+
+
+
+ 5. Add the public broker host names to the kafka.bootstrap-servers options in applications.yaml
+
+
+
+
+ 6. Try to push and consume using SASL_SSL
+    a. Compile the code
+       unix> cd ~/intelliJProjects/springBootKafka
+       unix> mvn clean package
+
+    b. Run the producer (to push messages)
+       unix> java -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+
+    c. Run the consumer  (to consume messages)
+       unix> Java -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
+
+
