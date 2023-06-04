@@ -140,6 +140,8 @@ Part 1:  Setup the Amazon MSK Cluster
        -- Allow SSH traffic from anywhere
        -- ALSO: Get your IP address by going to whatismyip.com
                 Add an inbound rule to allow SSH traffic from your public IP
+       -- Press "Edit"
+          Set the security group name to be security-group-msk-instance-1
 
 
     f. In Advanced details
@@ -147,21 +149,17 @@ Part 1:  Setup the Amazon MSK Cluster
 
     g. Press "Launch instance"
 
-    h. Get the security group for your instance
-       Go to EC2 -> Instances
-       Check the msk-instance
-       Open the "Security" tab
-       Copy the security group -- e.g., sg-0d4b90a62b0f9ba5a
-
-    i. Go to VPC and create an inbound rule
-       Go to VPC
-       In the navigation pane, choose Security Groups
-       Check your security group (from the previous step)
-       Select the "Inbound rules" tab
-       Press "Edit inbound rules"
-       Press "Add Rule"
+    h. Adjust the MSK's Security Group si it allows inbound traffic
+       a. Go to Amazon MSK
+       b. Click on your cluster
+       c. Go to Network Settings
+       d. Click the link to the security group
+       e. Press "Edit inbound rules"
+       f. Press "Add Rule"
          Type:  All Traffic
-         Source:  Select your security group -- e.g., sg-0d4b90a62b0f9ba5a
+         Source:  Custom
+                  Search for your security-group-msk-instance-1
+
          Press "Save rules"
 
 
@@ -195,17 +193,20 @@ Part 1:  Setup the Amazon MSK Cluster
     e. Install Java-11 on the instance
        instance unix> sudo yum install java-11
 
-    f. Download kafka 2.8.1 to this instance
+    f. Install Telnet on the instance
+       instance unix> sudo yum instsall telnet
+
+    g. Download kafka 2.8.1 to this instance
        instance unix> cd
        instance unix> wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz
        instance unix> tar -xzf kafka_2.12-2.8.1.tgz
        instance unix> rm kafka_2.12-2.8.1.tgz
 
-    g. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
+    h. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
        instance unix> cd ~/kafka_2.12-2.8.1/libs
        instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.6/aws-msk-iam-auth-1.1.6-all.jar
 
-    h. Create client.properties in the kafka_2.12-2.8.1/bin directory
+    i. Create client.properties in the kafka_2.12-2.8.1/bin directory
        instance unix> cd ~/kafka_2.12-2.8.1/bin
        instance unix> vi client.properties
 
@@ -222,7 +223,12 @@ Part 1:  Setup the Amazon MSK Cluster
        5) Under Bootstrap servers
           Copy the TLS endpoint for private endpoint -- e.g., b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
 
-    j. Create a topic called:  MSKTutorialTopic
+    j. Verify that you can reach one of the boot strap servers
+       unix> telnet b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com 9098
+       -- Verify that it says connected to....
+       -- If it times-out, then STOP HERE and adjust your security groups
+
+    k. Create a topic called:  MSKTutorialTopic
        instance unix> cd ~/kafka_2.12-2.8.1/bin
        instance unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098    # We only need 1 to create the topic
        instance unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic MSKTutorialTopic
