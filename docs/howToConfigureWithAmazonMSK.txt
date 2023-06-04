@@ -16,9 +16,9 @@ Part 1:  Setup the Amazon MSK Cluster
 -------------------------------------
  1. login to aws.com
 
- 2. Create the MSK cluster
+ 2. Create a MSK cluster:  demo-cluster-1
     a. Go to MSK
-    a. On the left, choose Clusters
+    b. On the left, choose Clusters
     c. Press "Create cluster"
     d. In the Create cluster page
 
@@ -35,23 +35,16 @@ Part 1:  Setup the Amazon MSK Cluster
         Press "Create cluster"
 
 
-        W A I T    U P    T O      1 5      M I N     (for cluster to be created)
+        W A I T    U P    T O      1 5      M I N     (but keep following procedures while the cluster is starting)
 
 
- 3. Create an IAM policy  (that grants access to create topics on the cluster and to send data to those topics)
+ 3. Create an IAM Policy:  access-to-demo-1-msk-cluster-policy
+    This policy grants access to create topics on the cluster and to send data to those topics
     a. Go to IAM
-
-    b. On the nav pane, choose Policies.
-
+    b. In the nav pane, choose Policies.
     c. Press "Create Policy"
-
     d. Choose the JSON tab
-
-    e. Update this text with your info
-       a. Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-1
-       b. Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
-       c. Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
-
+    e. Copy this to the Policy editor
 
             {
                 "Version": "2012-10-17",
@@ -91,17 +84,62 @@ Part 1:  Setup the Amazon MSK Cluster
                 ]
             }
 
-     c. Press "Next: Tags"
 
-     d. Press "Next: Review"
+    f. Update this text with your info
+       1) Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-3
+       2) Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
+       3) Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
 
-     e. In the "Review Policy" page
+       When finished, my policy looked like this:
+
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "kafka-cluster:Connect",
+                        "kafka-cluster:AlterCluster",
+                        "kafka-cluster:DescribeCluster"
+                    ],
+                    "Resource": [
+                        "arn:aws:kafka:us-east-1:524647912468:cluster/demo-cluster-1/*"
+                    ]
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "kafka-cluster:*Topic*",
+                        "kafka-cluster:WriteData",
+                        "kafka-cluster:ReadData"
+                    ],
+                    "Resource": [
+                        "arn:aws:kafka:us-east-1:524647912468:topic/demo-cluster-1/*"
+                    ]
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "kafka-cluster:AlterGroup",
+                        "kafka-cluster:DescribeGroup"
+                    ],
+                    "Resource": [
+                        "arn:aws:kafka:us-east-1:524647912468:group/demo-cluster-1/*"
+                    ]
+                }
+            ]
+        }
+
+
+
+     g. Press "Next: Tags"
+     h. In the "Review and Create" page
         Name:  access-to-demo-1-msk-cluster-policy
-
         Press "Create policy"
 
 
-  4. Create an IAM role and attach the policy to it
+  4. Create an IAM role:   access-to-demo-1-msk-cluster-role
+     NOTE:  This role has the above policy attached to it
      a. On the nav pane, choose Roles.
      b. Press "Create role"
      c. Under Common use cases, choose EC2,
@@ -117,7 +155,8 @@ Part 1:  Setup the Amazon MSK Cluster
         Press "Create role"
 
 
- 5. Create a client machine
+ 5. Create an instance:  msk-instance
+    NOTE:  We will use this instance to run a topic and verify that instances have access to the Kafka topic
     a. Go to EC2
     b. Press "Launch instance" -> Launch instance
     c. In the Launch an instance page
@@ -136,12 +175,13 @@ Part 1:  Setup the Amazon MSK Cluster
          You will be prompted to save msk-key-pair.pem
          -- Save it to your ~/Downloads/msk-key-pair.pem
 
-    e. In Network settings, go with defaults
-       -- Allow SSH traffic from anywhere
-       -- ALSO: Get your IP address by going to whatismyip.com
-                Add an inbound rule to allow SSH traffic from your public IP
-       -- Press "Edit"
-          Set the security group name to be security-group-msk-instance-1
+    e. In Network settings, press "Edit"
+       VPC:                         (default)
+       Auto-assign public IP:       Enable
+       Firewall (Security groups):  Create security group
+       Security Group name:         security-group-msk-instance-1
+
+       NOTE:  By default ssh should be allowed from anywhere
 
 
     f. In Advanced details
@@ -149,23 +189,32 @@ Part 1:  Setup the Amazon MSK Cluster
 
     g. Press "Launch instance"
 
-    h. Adjust the MSK's Security Group si it allows inbound traffic
+        W A I T      5      M I N U T E S      F O R     EC2 Instance      T O     B E     R U N N I N G
+
+        W A I T    F O R     Amazon MSK CLUSTER     T O    B E    A C T I V E
+
+
+    h. Adjust the MSK's Security Group so it allows inbound traffic
+       NOTE:  This is needed so that the running instance can connect to the MSK Cluster (and create a topic)
        a. Go to Amazon MSK
        b. Click on your cluster
-       c. Go to Network Settings
-       d. Click the link to the security group
-       e. Press "Edit inbound rules"
-       f. Press "Add Rule"
+       c. Click on the "Properties" tab
+       d. Scroll down to Network Settings
+       e. Click the link to the security group
+       f. Press "Edit inbound rules"
+       g. Press "Add Rule"   [DON'T MISS THIS STEP]
          Type:  All Traffic
          Source:  Custom
                   Search for your security-group-msk-instance-1
 
+         NOW, THERE SHOULD BE 2 RULES for this security group
+
          Press "Save rules"
 
 
- 6. Create a kafka topic
-    NOTE:  By default a running instance INSIDE amazon AWS will have access to the cluster
-           But, we do not have access OUTSIDE amazon AWS at this time
+ 6. Create a kafka topic  (from the running instance)
+    NOTE:  We have granted access to the running instance access to the MSK cluster
+           So processes (running on the instance) can push/consume from kafka topics
 
     a. Get the version of kafka from MSK
        1) Go to MSK
@@ -194,7 +243,7 @@ Part 1:  Setup the Amazon MSK Cluster
        instance unix> sudo yum install java-11
 
     f. Install Telnet on the instance
-       instance unix> sudo yum instsall telnet
+       instance unix> sudo yum install telnet
 
     g. Download kafka 2.8.1 to this instance
        instance unix> cd
@@ -215,12 +264,11 @@ Part 1:  Setup the Amazon MSK Cluster
             sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;
             sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
 
-    i. Get the bootstrap server hostname
+    i. Get the bootstrap server hostnames
        1) Go to the MSK console
-       2) Wait for your cluster to become Active
-       3) Click on your demo-cluster-1
-       4) Press "View client information"
-       5) Under Bootstrap servers
+       2) Click on your demo-cluster-1
+       3) Press "View client information"
+       4) Under Bootstrap servers
           Copy the TLS endpoint for private endpoint -- e.g., b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
 
     j. Verify that you can reach one of the boot strap servers
