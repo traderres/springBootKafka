@@ -240,24 +240,24 @@ Part 1:  Setup the Amazon MSK Cluster
 
 
     e. Install Java-11 on the instance
-       instance unix> sudo yum install java-11
+       aws-instance-unix> sudo yum install java-11
 
     f. Install Telnet on the instance
-       instance unix> sudo yum install telnet
+       aws-instance-unix> sudo yum install telnet
 
     g. Download kafka 2.8.1 to this instance
-       instance unix> cd
-       instance unix> wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz
-       instance unix> tar -xzf kafka_2.12-2.8.1.tgz
-       instance unix> rm kafka_2.12-2.8.1.tgz
+       aws-instance-unix> cd
+       aws-instance-unix> wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz
+       aws-instance-unix> tar -xzf kafka_2.12-2.8.1.tgz
+       aws-instance-unix> rm kafka_2.12-2.8.1.tgz
 
     h. Download the msk iam jar to the kafka_2.12-2.8.1/libs directory
-       instance unix> cd ~/kafka_2.12-2.8.1/libs
-       instance unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.6/aws-msk-iam-auth-1.1.6-all.jar
+       aws-instance-unix> cd ~/kafka_2.12-2.8.1/libs
+       aws-instance-unix> wget https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.6/aws-msk-iam-auth-1.1.6-all.jar
 
     i. Create client.properties in the kafka_2.12-2.8.1/bin directory
-       instance unix> cd ~/kafka_2.12-2.8.1/bin
-       instance unix> vi client.properties
+       aws-instance-unix> cd ~/kafka_2.12-2.8.1/bin
+       aws-instance-unix> vi client.properties
 
             security.protocol=SASL_SSL
             sasl.mechanism=AWS_MSK_IAM
@@ -277,37 +277,42 @@ Part 1:  Setup the Amazon MSK Cluster
        -- If it times-out, then STOP HERE and adjust your security groups
 
     k. Create a topic called:  MSKTutorialTopic
-       instance unix> cd ~/kafka_2.12-2.8.1/bin
-       instance unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098    # We only need 1 to create the topic
-       instance unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic MSKTutorialTopic
+       aws-instance-unix> cd ~/kafka_2.12-2.8.1/bin
+       aws-instance-unix> export TOPIC_NAME=MSKTutorialTopic
+       aws-instance-unix> export BOOTSTRAP_SERVER=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098    # We only need 1 to create the topic
+       aws-instance-unix> ./kafka-topics.sh --create --bootstrap-server $BOOTSTRAP_SERVER --command-config client.properties --replication-factor 3 --partitions 1 --topic ${TOPIC_NAME}
 
 
 
 Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Amazon MSK Cluster
 -----------------------------------------------------------------------------------------------
   1. Add the maven dependency to the producer and consumer pom.xml files:
+     a. Add this dependency to consumer/pom.xml
+        <dependency>
+            <groupId>software.amazon.msk</groupId>
+            <artifactId>aws-msk-iam-auth</artifactId>
+            <version>1.1.6</version>
+        </dependency>
 
-                <dependency>
-                    <groupId>software.amazon.msk</groupId>
-                    <artifactId>aws-msk-iam-auth</artifactId>
-                    <version>1.1.6</version>
-                </dependency>
+     b. Add this dependency to producer/pom.xml
+        <dependency>
+            <groupId>software.amazon.msk</groupId>
+            <artifactId>aws-msk-iam-auth</artifactId>
+            <version>1.1.6</version>
+        </dependency>
+
 
 
   2. Tell the Producer Configuration to have some additional properties:
      a. Edit MyProducerConfig
 
-     b. Inject the truststore file path
-              @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
-                 private String trustStoreFilePath;
-
-
-     c. Add the properties to the kafka property configuration
+     b. Add the properties to the kafka property configuration
              // AWS Kafka properties
+             // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
              props.put("ssl.truststore.location",            this.trustStoreFilePath);
              props.put("security.protocol",                  "SASL_SSL");
              props.put("sasl.mechanism",                     "AWS_MSK_IAM");
-             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
              props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
 
 
@@ -348,10 +353,10 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
                     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
                     // AWS Kafka properties
-                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
                     props.put("security.protocol",                  "SASL_SSL");
                     props.put("sasl.mechanism",                     "AWS_MSK_IAM");
-                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
                     props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
 
                     return props;
@@ -372,20 +377,17 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
 
 
 
-  2. Adjust the Consumer Kafka Configuration to use AWS MSK's security
+  3. Adjust the Consumer Kafka Configuration to use AWS MSK's security
      a. Edit MyConsumerConfig
 
-     b. Inject the truststore file path
-              @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
-                 private String trustStoreFilePath;
 
-
-     c. Add the properties to the kafka property configuration     a. Inject the truststore file path
+     b. Add the properties to the kafka property configuration     a. Inject the truststore file path
              // AWS Kafka properties
+             // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
              props.put("ssl.truststore.location",            this.trustStoreFilePath);
              props.put("security.protocol",                  "SASL_SSL");
              props.put("sasl.mechanism",                     "AWS_MSK_IAM");
-             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+             props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
              props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
 
 
@@ -439,10 +441,10 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
 
 
                     // AWS Kafka properties
-                    props.put("ssl.truststore.location",            this.trustStoreFilePath);
+                    // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
                     props.put("security.protocol",                  "SASL_SSL");
                     props.put("sasl.mechanism",                     "AWS_MSK_IAM");
-                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
                     props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
 
 
@@ -466,24 +468,45 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
 
 
 
- 4. Turn on public access to the brokers of MSK clusters
-    [See https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html]
-
-
-
- 5. Add the public broker host names to the kafka.bootstrap-servers options in applications.yaml
-
-
-
-
- 6. Try to push and consume using SASL_SSL
-    a. Compile the code
-       unix> cd ~/intelliJProjects/springBootKafka
+ 4. Build the JAR and upload it to the running instance
+    a. Compile the code into an uber jar
        unix> mvn clean package
 
-    b. Run the producer (to push messages)
-       unix> java -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+    b. Upload the jars
+       NOTE:  THe destination hostname can be found in Running Instances -> Select Instance -> Public IPv4 DNS
+       unix> scp -i ~/.ssh/msk-key-pair.pem  ./producer/target/producer-1.0-SNAPSHOT.jar  ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com:/tmp
+       unix> scp -i ~/.ssh/msk-key-pair.pem  ./consumer/target/consumer-1.0-SNAPSHOT.jar  ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com:/tmp
 
-    c. Run the consumer  (to consume messages)
-       unix> Java -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
+
+
+ 5. Try to run the jars on the running instance
+    a. ssh to the running instance
+       unix> ssh -i "msk-key-pair.pem" ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com
+
+    b. Move the jars from /tmp to /home/ec2-user
+       aws-instance-unix> cd
+       aws-instance-unix> cp /tmp/consumer-1.0-SNAPSHOT.jar .
+       aws-instance-unix> cp /tmp/producer-1.0-SNAPSHOT.jar .
+
+    c. Get the bootstrap server hostnames
+       1) Go to the MSK console
+       2) Click on your demo-cluster-1
+       3) Press "View client information"
+       4) Under Bootstrap servers
+          Copy the TLS endpoint for private endpoint -- e.g., b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+
+    d. Run the producer (to push messages)
+       aws-instance-unix> export TOPIC_NAME=MSKTutorialTopic
+       aws-instance-unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+       aws-instance-unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./producer-1.0-SNAPSHOT.jar
+
+
+    e. Run the consumer (to consume messages)
+       1) ssh to the running instance in a *SECOND* window
+          unix> ssh -i "msk-key-pair.pem" ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com
+
+       2) Start the consumer
+          aws-instance-unix> export TOPIC_NAME=MSKTutorialTopic
+          aws-instance-unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+          aws-instance-unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./consumer-1.0-SNAPSHOT.jar
 
