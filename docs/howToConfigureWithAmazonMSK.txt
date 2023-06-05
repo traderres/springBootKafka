@@ -495,13 +495,13 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
        4) Under Bootstrap servers
           Copy the TLS endpoint for private endpoint -- e.g., b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
 
-    d. Run the producer (to push messages)
+    d. Run the producer on the instance (to push messages)
        aws-instance-unix> export TOPIC_NAME=MSKTutorialTopic
        aws-instance-unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
        aws-instance-unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./producer-1.0-SNAPSHOT.jar
 
 
-    e. Run the consumer (to consume messages)
+    e. Run the consumer on the instance (to consume messages)
        1) ssh to the running instance in a *SECOND* window
           unix> ssh -i "msk-key-pair.pem" ec2-user@ec2-3-83-99-235.compute-1.amazonaws.com
 
@@ -509,4 +509,83 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
           aws-instance-unix> export TOPIC_NAME=MSKTutorialTopic
           aws-instance-unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
           aws-instance-unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./consumer-1.0-SNAPSHOT.jar
+
+
+
+
+
+Part 3: Adjust MSK Cluster so it is publicly accessible
+-------------------------------------------------------
+ 1. Make the MSK cluster publicly accessible
+    a. Go to MSK
+    b. Click on demo-cluster-1
+    c. Click on the "Properties" tab
+    d. Scroll down to "Network settings"
+    e. Press "Edit" -> Edit Public Access
+       Check "Turn on"
+       Press "Save Changes"
+
+          T A K E S         2 0      M I N U T E S     (But keep following procedures)
+
+
+
+  2. Create an aws user:  msk-user
+
+
+  3. Create an aws local profile:  msk-user-profile
+     unix> aws configure --profile msk-user-profile
+
+     AWS Access Key Id:       [enter the 1st value from msk-user.csv]
+     AWS Secret Access Key:   [enter the 2nd value from msk-user.csv]
+     Default region name:     us-east-1         # Enter YOUR region
+     Default output format:   json
+
+
+
+  4. Adjust the code to use the aws msk-user-profile
+     a. Change this in the code in MyProducerConfig
+
+        Change this:
+            props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required;");
+
+        To this:
+            props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+
+
+    b. Change this in the code in MyConsumerConfig
+
+         Change this:
+             props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required;");
+
+         To this:
+             props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+
+
+  5. Compile the code
+     unix> mvn clean package
+
+
+
+
+  6. W A I T      F O R     demo-cluster-1      T O    F I N I S H    U P D A T I N G
+
+
+
+
+  7. Get the public IP address for the BOOTSTRAP_SERVERS env variable
+     a. Go to MSK
+     b. Click on demo-cluster-1
+     c. Click on the "Properties" tab
+
+
+  8. Run the producer locally
+     unix> export TOPIC_NAME=MSKTutorialTopic
+     unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+     unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+
+
+  9. Run the consumer locally
+     unix> export TOPIC_NAME=MSKTutorialTopic
+     unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
+     unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
 
