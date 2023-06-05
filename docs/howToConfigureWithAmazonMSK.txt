@@ -221,7 +221,7 @@ Part 1:  Setup the Amazon MSK Cluster
        1) Go to MSK
        2) Look for your clusters
             demo-cluster-1
-            -- Get the Apache Kakfa version -- e.g., 2.8.1
+            -- Get the Apache Kafka version -- e.g., 2.8.1
 
     b. Get the SSH credentials to connect to your running instance
        1) Go to EC2
@@ -735,7 +735,7 @@ Part 3: Adjust MSK Cluster so it is publicly accessible
                 public Map<String, Object> consumerConfig() {
                     Map<String, Object> props = new HashMap<>();
 
-                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    // list of host:port pairs used for establishing the initial connections to the Kafka cluster
                     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServers);
                     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
                     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -816,7 +816,7 @@ Part 3: Adjust MSK Cluster so it is publicly accessible
 10. Verify that your local box can reach the public bootstrap servers
      unix> telnet  b-1-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com 9198
 
-     -- If you don't see conntected, then there is a problem as you cannot reach the bootstrap servers
+     -- If you don't see connected, then there is a problem as you cannot reach the bootstrap servers
 
 
 11. Run the producer locally
