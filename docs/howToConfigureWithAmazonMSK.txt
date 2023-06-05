@@ -9,6 +9,7 @@ https://medium.com/egen/securing-kafka-cluster-using-sasl-acl-and-ssl-dec15b439f
 https://aws.amazon.com/blogs/big-data/securing-apache-kafka-is-easy-and-familiar-with-iam-access-control-for-amazon-msk/
 https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
 https://github.com/aws/aws-msk-iam-auth
+https://docs.aws.amazon.com/msk/latest/developerguide/public-access.html
 
 
 
@@ -309,7 +310,6 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
      b. Add the properties to the kafka property configuration
              // AWS Kafka properties
              // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
-             props.put("ssl.truststore.location",            this.trustStoreFilePath);
              props.put("security.protocol",                  "SASL_SSL");
              props.put("sasl.mechanism",                     "AWS_MSK_IAM");
              props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
@@ -340,14 +340,11 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
                 @Value("${kafka.bootstrap-servers}")
                 private String bootstrapServers;
 
-                @Value("${kafka.truststore-filepath}")                // Inject the truststore file path
-                private String trustStoreFilePath;
-
                 @Bean
                 public Map<String, Object> producerConfigs() {
                     Map<String, Object> props = new HashMap<>();
 
-                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    // list of host:port pairs used for establishing the initial connections to the Kafka cluster
                     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
                     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
                     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -381,10 +378,9 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
      a. Edit MyConsumerConfig
 
 
-     b. Add the properties to the kafka property configuration     a. Inject the truststore file path
+     b. Add the properties to the kafka property configuration
              // AWS Kafka properties
              // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
-             props.put("ssl.truststore.location",            this.trustStoreFilePath);
              props.put("security.protocol",                  "SASL_SSL");
              props.put("sasl.mechanism",                     "AWS_MSK_IAM");
              props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
@@ -418,14 +414,11 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
                 @Value("${kafka.bootstrap-servers}")
                 private String bootstrapServers;
 
-                @Value("${kafka.truststore-filepath}")
-                private String trustStoreFilePath;
-
                 @Bean
                 public Map<String, Object> consumerConfig() {
                     Map<String, Object> props = new HashMap<>();
 
-                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    // list of host:port pairs used for establishing the initial connections to the Kafka cluster
                     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServers);
                     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
                     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -446,7 +439,6 @@ Part 2:  Configure springBootKafka to use SASL_SSL and connect to our public Ama
                     props.put("sasl.mechanism",                     "AWS_MSK_IAM");
                     props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required;");
                     props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
-
 
                     return props;
                 }
@@ -525,25 +517,117 @@ Part 3: Adjust MSK Cluster so it is publicly accessible
        Check "Turn on"
        Press "Save Changes"
 
-          T A K E S         2 0      M I N U T E S     (But keep following procedures)
+          T A K E S         3 0      M I N U T E S     (But keep following procedures)
 
 
 
-  2. Create an aws user:  msk-user
+ 2. Create a policy:  admin-demo-1-msk-cluster-policy
+    a. Go to IAM
+    b. On the nav pane, choose Policies.
+    c. Press "Create Policy"
+    d. Choose the JSON tab
+    e. Copy this JSON to the Policy Editor
+
+        {
+           "Version": "2012-10-17",
+           "Statement": [
+               {
+                   "Effect": "Allow",
+                   "Action": [
+                       "kafka-cluster:*"
+                   ],
+                   "Resource": [
+                        "arn:aws:kafka:MY_REGION:MY_ACCOUNT_ID:*/MY_MSK_CLUSTER_NAME/*"
+                   ]
+               }
+           ]
+        }
 
 
-  3. Create an aws local profile:  msk-user-profile
-     unix> aws configure --profile msk-user-profile
 
-     AWS Access Key Id:       [enter the 1st value from msk-user.csv]
-     AWS Secret Access Key:   [enter the 2nd value from msk-user.csv]
-     Default region name:     us-east-1         # Enter YOUR region
-     Default output format:   json
+    f. Update this text with your info
+       1) Replace MY_MSK_CLUSTER_NAME  --> Your MSK cluster name  -- e.g., demo-cluster-3
+       2) Replace MY_ACCOUNT_ID        --> Your account id        -- e.g., 524647912468    Click on your name in the upper right corner and you will see it
+       3) Replace MY_REGION            --> With account region    -- e.g., us-east-1       Look at the url of your console and you should see it
 
 
+       When finished, my policy looked like this:
 
-  4. Adjust the code to use the aws msk-user-profile
-     a. Change this in the code in MyProducerConfig
+        {
+           "Version": "2012-10-17",
+           "Statement": [
+               {
+                   "Effect": "Allow",
+                   "Action": [
+                       "kafka-cluster:*"
+                   ],
+                   "Resource": [
+                        "arn:aws:kafka:us-east-1:524647912468:*/demo-cluster-1/*"
+                   ]
+               }
+           ]
+        }
+
+
+
+    g. Press "Next: Tags"
+    h. In the "Review and Create" page
+        Name:  admin-demo-3-msk-cluster-policy
+        Press "Create policy"
+
+
+
+ 3. Create an aws user:  msk-user   (that has privileges to the MSK cluster)
+    a. Go to IAM
+    b. On the nav pane, choose Users
+    c. Press "Add users"
+    d. In User the User details
+       User name:   msk-user
+       Uncheck      Provide user access to the AWS Management Console
+       Press "Next"
+
+    e. In "Set permissions"
+       Press "Attach policies directly"
+       Select  access-to-demo-1-msk-cluster-policy
+       Select  admin-demo-1-msk-cluster-policy
+       Press "Next"
+
+    f. Press "Create user"
+    g. In the "Users" list, click on msk-user
+    h. Click on the "Security credentials" tab
+    i. Press "Create access key"
+    j. In "Access key best practices & alternatives"
+       Select Command Line Interface (CLI)
+       Check "I understand the above recommendations and want to proceed to create an access key"
+       Press "Next"
+
+    k. In "Set description tag",
+       enter msk-user access key
+       Press "Create access key"
+
+    l. In "Retrieve access keys",
+       Press "Download .csv file"
+       Press "Done"
+
+
+
+
+
+
+ 4. Create an aws local profile:  msk-user-profile
+    unix> aws configure --profile msk-user-profile
+
+    AWS Access Key Id:       [enter the 1st value from msk-user.csv]
+    AWS Secret Access Key:   [enter the 2nd value from msk-user.csv]
+    Default region name:     us-east-1         # Enter YOUR region
+    Default output format:   json
+
+
+
+
+
+ 5. Adjust the code to use the AWS msk-user-profile
+    a. Change this code MyProducerConfig.java
 
         Change this:
             props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required;");
@@ -552,7 +636,66 @@ Part 3: Adjust MSK Cluster so it is publicly accessible
             props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
 
 
-    b. Change this in the code in MyConsumerConfig
+        When finished, the MyProducerConfig class looks like this:
+
+             package com.whatever.producer;
+
+             import org.apache.kafka.clients.producer.ProducerConfig;
+             import org.apache.kafka.common.serialization.StringSerializer;
+             import org.springframework.beans.factory.annotation.Value;
+             import org.springframework.context.annotation.Bean;
+             import org.springframework.context.annotation.Configuration;
+             import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+             import org.springframework.kafka.core.KafkaTemplate;
+             import org.springframework.kafka.core.ProducerFactory;
+
+             import java.util.HashMap;
+             import java.util.Map;
+
+             /**
+              * MyProducerConfig
+              */
+             @Configuration
+             public class MyProducerConfig {
+                 @Value("${kafka.bootstrap-servers}")
+                 private String bootstrapServers;
+
+                 @Bean
+                 public Map<String, Object> producerConfigs() {
+                     Map<String, Object> props = new HashMap<>();
+
+                     // list of host:port pairs used for establishing the initial connections to the Kafka cluster
+                     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+                     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+                    // AWS Kafka properties
+                    // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+
+                     return props;
+                 }
+
+                 @Bean
+                 public ProducerFactory<String, String> producerFactory() {
+                     Map<String, Object> configs = producerConfigs();
+                     return new DefaultKafkaProducerFactory<>(configs);
+                 }
+
+                 @Bean
+                 public KafkaTemplate<String, String> kafkaTemplate() {
+                     return new KafkaTemplate<>(producerFactory());
+                 }
+
+             }
+
+
+
+    b. Change this code MyProducerConfig.java
 
          Change this:
              props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required;");
@@ -561,31 +704,129 @@ Part 3: Adjust MSK Cluster so it is publicly accessible
              props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
 
 
-  5. Compile the code
-     unix> mvn clean package
+       When finished, the MyConsumerConfig class looks like this:
+
+            package com.whatever.consumer;
+
+            import org.apache.kafka.clients.consumer.ConsumerConfig;
+            import org.apache.kafka.common.serialization.StringDeserializer;
+            import org.springframework.beans.factory.annotation.Value;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+            import org.springframework.kafka.annotation.EnableKafka;
+            import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+            import org.springframework.kafka.config.KafkaListenerContainerFactory;
+            import org.springframework.kafka.core.*;
+            import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+
+            import java.util.HashMap;
+            import java.util.Map;
+
+            /**
+             * MyConsumerConfig
+             */
+            @EnableKafka
+            @Configuration
+            public class MyConsumerConfig {
+                @Value("${kafka.bootstrap-servers}")
+                private String bootstrapServers;
+
+                @Bean
+                public Map<String, Object> consumerConfig() {
+                    Map<String, Object> props = new HashMap<>();
+
+                    // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+                    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServers);
+                    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+                    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+                    // allows a pool of processes to divide the work of consuming records
+                    props.put(ConsumerConfig.GROUP_ID_CONFIG, "updates");
+
+                    // automatically reset the offset to the earliest offset
+                    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+                    // Pull at most 10 records at a time
+                    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+
+
+                    // AWS Kafka properties
+                    // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
+                    props.put("security.protocol",                  "SASL_SSL");
+                    props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+                    props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+                    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
+                    return props;
+                }
+
+                @Bean
+                public ConsumerFactory<String, String> consumerFactory() {
+                    return new DefaultKafkaConsumerFactory<>(consumerConfig());
+                }
+
+                @Bean
+                public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, String>> kafkaListenerContainerFactory() {
+                    ConcurrentKafkaListenerContainerFactory<String, String> factory =  new ConcurrentKafkaListenerContainerFactory<>();
+                    factory.setConsumerFactory(consumerFactory());
+                    return factory;
+                }
+
+            }
+
+ 6. Compile the code
+    unix> mvn clean package
 
 
 
 
-  6. W A I T      F O R     demo-cluster-1      T O    F I N I S H    U P D A T I N G
+ 7.   W A I T      F O R     demo-cluster-1      T O    F I N I S H    U P D A T I N G
 
 
 
 
-  7. Get the public IP address for the BOOTSTRAP_SERVERS env variable
-     a. Go to MSK
-     b. Click on demo-cluster-1
-     c. Click on the "Properties" tab
+ 8. Get the hostname/ports for the BOOTSTRAP_SERVERS env variable
+    a. Go to MSK
+    b. Click on demo-cluster-1
+    c. Click on the "Properties" tab
+    d. Press "View client information"
+    e. Copy the public endpoint
+        -- It should hold something like this:
+           b-1-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-3-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-2-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198
 
 
-  8. Run the producer locally
-     unix> export TOPIC_NAME=MSKTutorialTopic
-     unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
-     unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+
+ 9. Adjust the security group for the msk cluster to allow all traffic in on port 9198
+    Why port 9198?  Because that is the open port in the previous step
+    a. Go to MSK
+    b. Click on demo-cluster-1
+    c. Click on the "Properties" tab
+    d. Scroll down to "Network settings"
+    e. Press the link of the security group
+    f. Press "Edit inbound rules"
+    g. Press "Add rule"    [DO NOT SKIP THIS STEP!!!]
+    h. In the new rule:
+         Type:   Custom TCP
+         Port:   9198
+         Source: Anywhere IPV4
+         Press "Save rules"
 
 
-  9. Run the consumer locally
-     unix> export TOPIC_NAME=MSKTutorialTopic
-     unix> export BOOTSTRAP_SERVERS=b-3.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-1.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098,b-2.democluster1.gh2mtx.c11.kafka.us-east-1.amazonaws.com:9098
-     unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
+
+10. Verify that your local box can reach the public bootstrap servers
+     unix> telnet  b-1-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com 9198
+
+     -- If you don't see conntected, then there is a problem as you cannot reach the bootstrap servers
+
+
+11. Run the producer locally
+    unix> export TOPIC_NAME=MSKTutorialTopic
+    unix> export BOOTSTRAP_SERVERS=b-1-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-3-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-2-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198
+    unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./producer/target/producer-1.0-SNAPSHOT.jar
+
+
+12. Run the consumer locally
+    unix> export TOPIC_NAME=MSKTutorialTopic
+    unix> export BOOTSTRAP_SERVERS=b-1-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-3-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198,b-2-public.democluster1.05166m.c12.kafka.us-east-1.amazonaws.com:9198
+    unix> java -Dkafka.bootstrap-servers=${BOOTSTRAP_SERVERS}  -Dkafka.topic-name=${TOPIC_NAME} -jar ./consumer/target/consumer-1.0-SNAPSHOT.jar
 
