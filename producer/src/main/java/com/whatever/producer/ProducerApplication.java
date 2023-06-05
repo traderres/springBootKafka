@@ -2,6 +2,7 @@ package com.whatever.producer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.Banner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -27,6 +28,10 @@ public class ProducerApplication implements CommandLineRunner
     @Resource
     private MyProducer reportsProducer;
 
+    @Value("${kafka.topic-name}")
+    private String topicName;
+
+
 
     public static void main( String[] args )
     {
@@ -46,11 +51,11 @@ public class ProducerApplication implements CommandLineRunner
 
 
 
-    /*****************************************************************
+    /*
      * run()
      *   initialDelay and fixedRate are in milliseconds
      *   this method is called once every 2 seconds
-     *****************************************************************/
+     */
     @Scheduled(initialDelay = 1000, fixedRate = 2000)
     public void run() {
         logger.debug("run() called from scheduler.");
@@ -59,7 +64,7 @@ public class ProducerApplication implements CommandLineRunner
         String updates = timeService.getCurrentDateTime();
 
         // Push the current date/time onto the kafka topic
-        reportsProducer.send("updates", updates);
+        reportsProducer.send(this.topicName, updates);
     }
 
 

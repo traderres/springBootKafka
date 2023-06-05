@@ -20,7 +20,7 @@ public class MyProducer {
 
     public MyProducer()
     {
-        logger.debug("ReportsProducer() constructor called>");
+        logger.debug("MyProducer() constructor called>");
     }
 
     public void send(String topic, String payload)

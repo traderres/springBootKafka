@@ -12,12 +12,14 @@ import org.springframework.stereotype.Service;
 public class MyConsumer {
     private static final Logger logger = LoggerFactory.getLogger(MyConsumer.class);
 
+
     public MyConsumer()
     {
-        logger.debug("ReportsConsumer() constructor called.");
+        logger.debug("MyConsumer() constructor called.");
     }
 
-    @KafkaListener(topics = "updates")
+
+    @KafkaListener(topics = "${kafka.topic-name}")
     public void receive(String payload) {
         logger.debug("receive()  payload={}", payload);
     }
