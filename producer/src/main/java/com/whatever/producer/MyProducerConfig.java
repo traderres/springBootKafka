@@ -24,10 +24,18 @@ public class MyProducerConfig {
     public Map<String, Object> producerConfigs() {
         Map<String, Object> props = new HashMap<>();
 
-        // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
+        // list of host:port pairs used for establishing the initial connections to the Kafka cluster
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        // AWS Kafka properties
+        // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
+        props.put("security.protocol", "SASL_SSL");
+        props.put("sasl.mechanism",    "AWS_MSK_IAM");
+        props.put("sasl.jaas.config",  "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+        props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
         return props;
     }
 

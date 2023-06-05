@@ -41,6 +41,14 @@ public class MyConsumerConfig {
         // Pull at most 10 records at a time
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
 
+
+        // AWS Kafka properties
+        // NOTE:  You need the semi-colon at the end of the "sasl.jaas.config" configuration
+        props.put("security.protocol",                  "SASL_SSL");
+        props.put("sasl.mechanism",                     "AWS_MSK_IAM");
+        props.put("sasl.jaas.config",                   "software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName=\"msk-user-profile\";");
+        props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
         return props;
     }
 
